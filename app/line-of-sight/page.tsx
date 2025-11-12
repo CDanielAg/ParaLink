@@ -136,16 +136,9 @@ export default function LineOfSight() {
             {/* Action Buttons */}
             <div className="space-y-2 pt-4 border-t border-border">
               <button
-                onClick={() => mapRef.current?.goToMyLocation()}
-                className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 text-sm"
-              >
-                <Navigation className="w-4 h-4" />
-                Mi Ubicación GPS
-              </button>
-              <button
                 onClick={() => mapRef.current?.addMarkerAtCenter()}
                 disabled={points.length >= 2}
-                className="w-full px-4 py-2 bg-secondary text-secondary-foreground rounded-lg font-medium hover:bg-secondary/90 transition-colors flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 text-sm"
               >
                 Colocar en centro
               </button>
