@@ -27,6 +27,13 @@ const MapContainer = forwardRef<MapContainerHandle, MapContainerProps>(function 
   const polylineRef = useRef<L.Polyline | null>(null)
   const [points, setPoints] = useState<MapPoint[]>([])
   const [markMode, setMarkMode] = useState<boolean>(false)
+  // Use external PNG icon for the marker (provided by user)
+  const defaultMarkerIcon = L.icon({
+    iconUrl: 'https://img.icons8.com/external-others-inmotus-design/67/external-Pointer-poi-others-inmotus-design.png',
+    iconSize: [48, 48], // 50% larger
+    iconAnchor: [24, 48],
+    popupAnchor: [0, -48],
+  })
 
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return
@@ -73,9 +80,6 @@ const MapContainer = forwardRef<MapContainerHandle, MapContainerProps>(function 
 
     mapInstanceRef.current = map
 
-  // Track polyline so we can remove it on clear
-  // usar el ref del scope
-
     // Handle clicks to add points
     const handleMapClick = (e: L.LeafletMouseEvent) => {
       if (markersRef.current.length >= 2) return
@@ -88,7 +92,7 @@ const MapContainer = forwardRef<MapContainerHandle, MapContainerProps>(function 
       }
 
       // Add marker (draggable)
-      const marker = L.marker([lat, lng], { draggable: true })
+      const marker = L.marker([lat, lng], { draggable: true, icon: defaultMarkerIcon })
         .bindPopup(`Punto ${newPoint.label}<br/>Lat: ${newPoint.lat}<br/>Lng: ${newPoint.lng}`)
         .addTo(map)
 
@@ -98,7 +102,6 @@ const MapContainer = forwardRef<MapContainerHandle, MapContainerProps>(function 
         const pos = m.getLatLng()
         setPoints((prev) => {
           const updated = prev.map((p) => (p.label === newPoint.label ? { ...p, lat: Number.parseFloat(pos.lat.toFixed(4)), lng: Number.parseFloat(pos.lng.toFixed(4)) } : p))
-          onPointsChange?.(updated)
           // update polyline
           if (polylineRef.current) {
             try { map.removeLayer(polylineRef.current) } catch (e) {}
@@ -122,7 +125,6 @@ const MapContainer = forwardRef<MapContainerHandle, MapContainerProps>(function 
       // Use functional setState to avoid stale closure
       setPoints((prev) => {
         const updated = [...prev, newPoint]
-        onPointsChange?.(updated)
 
         // Remove existing polyline and draw a new one if two points
         if (polylineRef.current) {
@@ -174,6 +176,11 @@ const MapContainer = forwardRef<MapContainerHandle, MapContainerProps>(function 
     }
   }, [onPointsChange])
 
+  // Notify parent component after points change (avoids setState during child render)
+  useEffect(() => {
+    onPointsChange?.(points)
+  }, [points, onPointsChange])
+
   // Effect to enable/disable map interactions when markMode toggles
   useEffect(() => {
     const map = mapInstanceRef.current
@@ -199,7 +206,6 @@ const MapContainer = forwardRef<MapContainerHandle, MapContainerProps>(function 
       polylineRef.current = null
     }
     setPoints([])
-    onPointsChange?.([])
   }
 
   const addMarkerAt = (lat: number, lng: number) => {
@@ -213,7 +219,7 @@ const MapContainer = forwardRef<MapContainerHandle, MapContainerProps>(function 
       label: markersRef.current.length === 0 ? 'A' : 'B',
     }
 
-    const marker = L.marker([lat, lng], { draggable: true })
+  const marker = L.marker([lat, lng], { draggable: true, icon: defaultMarkerIcon })
       .bindPopup(`Punto ${newPoint.label}<br/>Lat: ${newPoint.lat}<br/>Lng: ${newPoint.lng}`)
       .addTo(map)
 
@@ -222,7 +228,6 @@ const MapContainer = forwardRef<MapContainerHandle, MapContainerProps>(function 
       const pos = m.getLatLng()
       setPoints((prev) => {
         const updated = prev.map((p) => (p.label === newPoint.label ? { ...p, lat: Number.parseFloat(pos.lat.toFixed(4)), lng: Number.parseFloat(pos.lng.toFixed(4)) } : p))
-        onPointsChange?.(updated)
         if (polylineRef.current) {
           try { map.removeLayer(polylineRef.current) } catch (e) {}
           polylineRef.current = null
@@ -240,7 +245,6 @@ const MapContainer = forwardRef<MapContainerHandle, MapContainerProps>(function 
     markersRef.current.push(marker)
     setPoints((prev) => {
       const updated = [...prev, newPoint]
-      onPointsChange?.(updated)
       if (updated.length === 2) {
         if (polylineRef.current) try { map.removeLayer(polylineRef.current) } catch (e) {}
         polylineRef.current = L.polyline([
@@ -278,69 +282,12 @@ const MapContainer = forwardRef<MapContainerHandle, MapContainerProps>(function 
     <div className="relative w-full h-full">
       <div ref={mapRef} className="w-full h-full" />
 
-  {/* Map Controls - moved to right side */}
-  <div className="absolute right-4 top-24 bg-card/95 border border-border rounded-lg p-4 backdrop-blur-sm z-50 pointer-events-auto">
-        <p className="text-xs text-muted-foreground mb-2">
-          {points.length === 0
-            ? markMode
-              ? "Toca en el mapa para marcar puntos"
-              : "Activa 'Marcar puntos' para añadir pines"
-            : `${points.length}/2 puntos marcados`}
-        </p>
-        <div className="flex gap-2 mb-2">
-          <button
-            onClick={() => setMarkMode((s) => !s)}
-            className={`px-3 py-1 text-sm rounded ${markMode ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'}`}
-          >
-            {markMode ? 'Marcar: ON' : 'Marcar: OFF'}
-          </button>
-          <button
-            onClick={() => clearPoints()}
-            className="px-3 py-1 text-sm rounded bg-muted text-foreground"
-          >
-            Limpiar
-          </button>
-        <div className="flex flex-col gap-2">
-          <button
-            onClick={() => {
-              const map = mapInstanceRef.current
-              if (!map) return
-              const center = map.getCenter()
-              addMarkerAt(center.lat, center.lng)
-            }}
-            className="w-full px-3 py-1 text-sm rounded bg-secondary text-secondary-foreground"
-          >
-            Colocar en centro
-          </button>
-          <button
-            onClick={() => {
-              const map = mapInstanceRef.current
-              if (!map) return
-              if (!navigator.geolocation) return
-              navigator.geolocation.getCurrentPosition((pos) => {
-                map.setView([pos.coords.latitude, pos.coords.longitude], 14)
-              })
-            }}
-            className="w-full px-3 py-1 text-sm rounded bg-muted text-foreground"
-          >
-            Ir a mi ubicación
-          </button>
-        </div>
-        </div>
-
-      {/* Crosshair */}
-      <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-        <div className="w-6 h-6 border border-primary rounded-full opacity-70" />
-      </div>
-        {/* fallback single clear button removed (we use the above) */}
-      </div>
-
       {/* Cursor Coordinates */}
       <div className="absolute bottom-4 right-4 bg-card/95 border border-border rounded-lg px-3 py-2 backdrop-blur-sm text-xs text-muted-foreground z-50">
         Pasa el ratón por el mapa para ver coordenadas
       </div>
     </div>
   )
-  });
+});
 
-  export default MapContainer
+export default MapContainer

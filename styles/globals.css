@@ -123,3 +123,52 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom marker style for Leaflet DivIcon */
+.custom-marker {
+  width: 20px;
+  height: 20px;
+  background: #06b6d4;
+  border-radius: 50%;
+  border: 3px solid white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  display: block;
+}
+
+/* Ensure Leaflet default icon container doesn't force square styling */
+.leaflet-div-icon.custom-marker {
+  background: transparent;
+}
+
+/* Stronger, more specific rules so marker is visible above map tiles */
+.leaflet-marker-icon.custom-marker,
+.leaflet-div-icon.custom-marker {
+  width: 20px !important;
+  height: 20px !important;
+  background: transparent !important;
+  border: none !important;
+}
+.leaflet-marker-icon.custom-marker .custom-marker-inner,
+.leaflet-div-icon.custom-marker .custom-marker-inner {
+  display: block;
+  width: 20px;
+  height: 20px;
+  background: #06b6d4;
+  border-radius: 50%;
+  border: 3px solid white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  pointer-events: auto;
+}
+.leaflet-marker-icon.custom-marker {
+  z-index: 999 !important;
+}
+
+/* Ensure visibility and that the marker isn't clipped by parent overflow */
+.leaflet-marker-icon.custom-marker,
+.leaflet-div-icon.custom-marker {
+  visibility: visible !important;
+  overflow: visible !important;
+}
+.leaflet-div-icon.custom-marker {
+  pointer-events: auto !important;
+}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import dynamic from "next/dynamic"
 import { Navigation, Zap, Download, Eye } from "lucide-react"
 import {
@@ -13,6 +13,7 @@ import {
 } from "@/lib/calculations"
 
 const MapContainer = dynamic(() => import("@/components/map-container"), { ssr: false })
+import type { MapContainerHandle } from "@/components/map-container"
 
 interface MapPoint {
   lat: number
@@ -32,6 +33,7 @@ interface CalculationResults {
 }
 
 export default function Calculator() {
+  const mapRef = useRef<MapContainerHandle | null>(null)
   const [points, setPoints] = useState<MapPoint[]>([])
   const [results, setResults] = useState<CalculationResults>({
     distance: null,
@@ -108,7 +110,7 @@ export default function Calculator() {
       <div className="h-screen bg-card relative flex">
         {/* Map - Left Side */}
         <div className="flex-1 relative">
-          <MapContainer onPointsChange={setPoints} />
+          <MapContainer ref={mapRef} onPointsChange={setPoints} />
         </div>
 
         {/* Right Panel */}
@@ -177,7 +179,10 @@ export default function Calculator() {
 
             {/* Action Buttons */}
             <div className="space-y-2 pt-4 border-t border-border">
-              <button className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 text-sm">
+              <button
+                onClick={() => mapRef.current?.goToMyLocation()}
+                className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 text-sm"
+              >
                 <Navigation className="w-4 h-4" />
                 Mi Ubicación GPS
               </button>
@@ -196,6 +201,21 @@ export default function Calculator() {
               <button className="w-full px-4 py-2 bg-muted text-foreground rounded-lg font-medium hover:bg-muted/80 transition-colors flex items-center justify-center gap-2 text-sm">
                 <Zap className="w-4 h-4" />
                 Optimizar Señal
+              </button>
+              <button
+                onClick={() => mapRef.current?.addMarkerAtCenter()}
+                disabled={points.length >= 2}
+                className="w-full px-4 py-2 bg-secondary text-secondary-foreground rounded-lg font-medium hover:bg-secondary/90 transition-colors flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Colocar en centro
+              </button>
+              <button
+                onClick={() => {
+                  mapRef.current?.clearPoints()
+                }}
+                className="w-full px-4 py-2 bg-destructive text-destructive-foreground rounded-lg font-medium hover:bg-destructive/90 transition-colors flex items-center justify-center gap-2 text-sm"
+              >
+                Limpiar puntos
               </button>
               <button className="w-full px-4 py-2 bg-muted text-foreground rounded-lg font-medium hover:bg-muted/80 transition-colors flex items-center justify-center gap-2 text-sm">
                 <Download className="w-4 h-4" />
