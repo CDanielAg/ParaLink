@@ -134,7 +134,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div>
-              <h4 className="font-semibold mb-4">Sobre GeoParábola</h4>
+              <h4 className="font-semibold mb-4">Sobre ParaLink</h4>
               <p className="text-sm text-muted-foreground">
                 Herramienta de análisis geoespacial para profesionales en telecomunicaciones y astronomía.
               </p>
@@ -172,7 +172,7 @@ export default function Home() {
               <h4 className="font-semibold mb-4">Información</h4>
               <p className="text-sm text-muted-foreground">
                 Versión 1.0.0
-                <br />© 2025 GeoParábola
+                <br />© 2025 ParaLink
               </p>
             </div>
           </div>

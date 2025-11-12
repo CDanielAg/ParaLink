@@ -9,7 +9,7 @@ import EventShims from "@/components/event-shims"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "GeoParábola - Análisis Parabólico y Geoespacial",
+  title: "ParaLink - Análisis Parabólico y Geoespacial",
   description:
     "Herramienta profesional para análisis de antenas parabólicas, orientación satelital y visualización de terreno",
   generator: "v0.app",

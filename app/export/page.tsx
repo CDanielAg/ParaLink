@@ -5,7 +5,7 @@ import { useRef, useState } from "react"
 import PdfReportTemplate from "@/components/pdf-report-template"
 
 export default function Export() {
-  const [projectName, setProjectName] = useState("Análisis GeoParábola")
+  const [projectName, setProjectName] = useState("Análisis ParaLink")
   const reportRef = useRef<HTMLDivElement>(null)
 
   const handleDownloadPDF = async () => {

@@ -32,53 +32,69 @@ export const satellites = {
   },
 }
 
-// Calculate satellite position relative to observer
+// ✅ Calcular orientación realista entre observador y satélite
 export function calculateSatelliteOrientation(
   observerLat: number,
   observerLng: number,
   satelliteLat: number,
   satelliteLng: number,
-  satelliteAltitude: number,
+  satelliteAltitude: number, // km
 ) {
-  // Calculate azimuth
-  const dLng = satelliteLng - observerLng
-  const y = Math.sin(toRad(dLng)) * Math.cos(toRad(satelliteLat))
-  const x =
-    Math.cos(toRad(observerLat)) * Math.sin(toRad(satelliteLat)) -
-    Math.sin(toRad(observerLat)) * Math.cos(toRad(satelliteLat)) * Math.cos(toRad(dLng))
-  let azimuth = Math.atan2(y, x) * (180 / Math.PI)
-  azimuth = ((azimuth % 360) + 360) % 360
+  const R = 6371 // Radio de la Tierra (km)
+  const toRad = (deg: number) => (deg * Math.PI) / 180
+  const toDeg = (rad: number) => (rad * 180) / Math.PI
 
-  // Calculate elevation
-  const distance = calculateDistance(observerLat, observerLng, satelliteLat, satelliteLng)
-  const earthRadius = 6371 // km
-  const angle = Math.acos(earthRadius / (earthRadius + satelliteAltitude))
-  const elevation =
-    Math.atan2(Math.cos(angle) - earthRadius / (earthRadius + satelliteAltitude), Math.sin(angle)) * (180 / Math.PI)
+  const latO = toRad(observerLat)
+  const lonO = toRad(observerLng)
+  const latS = toRad(satelliteLat)
+  const lonS = toRad(satelliteLng)
+
+  // Ángulo central ψ (entre observador y satélite)
+  const psi = Math.acos(
+    Math.sin(latO) * Math.sin(latS) +
+      Math.cos(latO) * Math.cos(latS) * Math.cos(lonS - lonO),
+  )
+
+  // Distancia satélite-observador (ley del coseno esférico)
+  const distance = Math.sqrt(
+    (R + satelliteAltitude) ** 2 +
+      R ** 2 -
+      2 * R * (R + satelliteAltitude) * Math.cos(psi),
+  )
+
+  // Elevación (en radianes)
+  const elevationRad = Math.atan(
+    (Math.cos(psi) - R / (R + satelliteAltitude)) / Math.sin(psi),
+  )
+
+  // Azimut (ángulo respecto al norte)
+  const azimuthRad = Math.atan2(
+    Math.sin(lonS - lonO),
+    Math.cos(latO) * Math.tan(latS) - Math.sin(latO) * Math.cos(lonS - lonO),
+  )
 
   return {
-    azimuth: azimuth,
-    elevation: Math.max(elevation, 0), // Can't be below horizon
-    distance: distance,
+    azimuth: (toDeg(azimuthRad) + 360) % 360,
+    elevation: toDeg(elevationRad),
+    distance,
   }
 }
 
+// Calcular distancia superficial entre coordenadas (solo para referencia)
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371
+  const toRad = (deg: number) => (deg * Math.PI) / 180
   const dLat = toRad(lat2 - lat1)
   const dLng = toRad(lng2 - lng1)
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2)
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2)
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   return R * c
 }
 
-function toRad(deg: number): number {
-  return (deg * Math.PI) / 180
-}
-
-// Get approximate satellite position (simplified - using fixed positions for demo)
+// Posiciones fijas aproximadas (demo)
 export function getSatellitePosition(satelliteType: string, index = 0) {
   const positions: { [key: string]: { lat: number; lng: number }[] } = {
     GPS: [

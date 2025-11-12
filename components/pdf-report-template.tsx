@@ -43,7 +43,7 @@ export default function PdfReportTemplate({ data, onRef }: PdfReportTemplateProp
       {/* Header */}
       <div className="text-center border-b-2 border-gray-300 pb-6 mb-6">
         <div className="inline-block w-12 h-12 bg-gradient-to-br from-blue-500 to-green-500 rounded-lg mb-2" />
-        <h1 className="text-3xl font-bold">GeoParábola</h1>
+        <h1 className="text-3xl font-bold">ParaLink</h1>
         <p className="text-gray-600">Reporte de Análisis Geoespacial</p>
         <p className="text-xs text-gray-500 mt-2">Generado: {data.date}</p>
       </div>
@@ -142,7 +142,7 @@ export default function PdfReportTemplate({ data, onRef }: PdfReportTemplateProp
 
       {/* Footer */}
       <div className="border-t-2 border-gray-300 pt-4 text-center text-xs text-gray-600">
-        <p>GeoParábola v1.0.0 - Herramienta de Análisis Geoespacial</p>
+        <p>ParaLink v1.0.0 - Herramienta de Análisis Geoespacial</p>
         <p>Información de APIs: OpenStreetMap, OpenElevation, Open-Meteo, SatNOGS</p>
       </div>
     </div>

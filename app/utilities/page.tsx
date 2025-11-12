@@ -241,7 +241,7 @@ export default function Utilities() {
             <h3 className="text-lg font-bold mb-4">Información del Proyecto</h3>
             <div className="space-y-2 text-sm text-muted-foreground">
               <p>
-                <strong className="text-foreground">Nombre:</strong> GeoParábola
+                <strong className="text-foreground">Nombre:</strong> ParaLink
               </p>
               <p>
                 <strong className="text-foreground">Versión:</strong> 1.0.0

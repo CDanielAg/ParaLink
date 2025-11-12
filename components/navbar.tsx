@@ -28,7 +28,7 @@ export default function Navbar() {
             <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-lg">G</span>
             </div>
-            <span className="hidden sm:block text-lg font-bold text-foreground">GeoParábola</span>
+            <span className="hidden sm:block text-lg font-bold text-foreground">ParaLink</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -58,14 +58,6 @@ export default function Navbar() {
                 <Moon className="w-5 h-5 text-muted-foreground" />
               )}
             </button>
-
-            {/* Settings */}
-            <button className="p-2 hover:bg-muted/20 rounded-md transition-colors" aria-label="Settings">
-              <Settings className="w-5 h-5 text-muted-foreground" />
-            </button>
-
-            {/* User */}
-            <div className="hidden sm:block px-3 py-2 text-sm text-muted-foreground">Invitado</div>
 
             {/* Mobile Menu Button */}
             <button
