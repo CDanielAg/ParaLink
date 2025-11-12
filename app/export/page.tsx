@@ -12,17 +12,186 @@ export default function Export() {
     if (!reportRef.current) return
 
     const element = reportRef.current
-    const opt = {
+
+    // Clonar el nodo y aplicar estilos computados inline para evitar que html2canvas intente parsear
+    // funciones de color modernas como lab(), que no están soportadas.
+    const cloneNodeWithInlineStyles = (node: HTMLElement) => {
+      const clone = node.cloneNode(true) as HTMLElement
+
+      const colorProps = [
+        'color',
+        'background',
+        'background-color',
+        'border-color',
+        'border-top-color',
+        'border-right-color',
+        'border-bottom-color',
+        'border-left-color',
+        'outline-color',
+        'box-shadow',
+        'text-shadow',
+        'fill',
+        'stroke'
+      ]
+
+      const resolveColor = (val: string) => {
+        if (!/lab\(/i.test(val)) return val
+        try {
+          const temp = document.createElement('div')
+          temp.style.color = val
+          temp.style.display = 'none'
+          document.body.appendChild(temp)
+          const rgb = window.getComputedStyle(temp).color
+          document.body.removeChild(temp)
+          return rgb || 'rgb(0, 0, 0)'
+        } catch (e) {
+          return 'rgb(0, 0, 0)'
+        }
+      }
+
+      const walk = (orig: Element, copied: Element) => {
+        const computed = window.getComputedStyle(orig as Element)
+
+        // Aplicar propiedades de color críticas como estilos inline con valores resueltos
+        for (const prop of colorProps) {
+          try {
+            const value = computed.getPropertyValue(prop)
+            if (value) {
+              const resolved = resolveColor(value)
+              ;(copied as HTMLElement).style.setProperty(prop, resolved)
+            }
+          } catch (e) {
+            // ignore
+          }
+        }
+
+        // Copiar tamaño, fuentes y layout básicos para conservar apariencia
+        const passthrough = ['font', 'font-size', 'font-family', 'font-weight', 'line-height', 'padding', 'margin', 'width', 'height', 'display', 'vertical-align', 'text-align']
+        for (const prop of passthrough) {
+          try {
+            const v = computed.getPropertyValue(prop)
+            if (v) (copied as HTMLElement).style.setProperty(prop, v)
+          } catch (e) {}
+        }
+
+        // Eliminar variables CSS en el nodo copiado para evitar referencias a lab() desde :root
+        const copiedStyle = (copied as HTMLElement).style
+        for (let i = copiedStyle.length - 1; i >= 0; i--) {
+          const name = copiedStyle.item(i)
+          if (name && name.startsWith('--')) copiedStyle.removeProperty(name)
+        }
+
+        // Repetir para hijos
+        const origChildren = Array.from(orig.children)
+        const copyChildren = Array.from(copied.children)
+        for (let i = 0; i < origChildren.length; i++) {
+          const o = origChildren[i]
+          const c = copyChildren[i]
+          if (o && c) walk(o, c)
+        }
+      }
+
+      walk(node, clone)
+      return clone
+    }
+    const opt: any = {
       margin: 10,
       filename: `geoparabola-${new Date().getTime()}.pdf`,
-      image: { type: "jpeg" as const, quality: 0.98 },
+      image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2 },
-      jsPDF: { orientation: "portrait", unit: "mm", format: "a4" },
+      jsPDF: { orientation: 'portrait' as const, unit: 'mm', format: 'a4' },
     }
 
-    // Import html2pdf dynamically to avoid server-side evaluation (ReferenceError: self is not defined)
+    // Import html2pdf dinámicamente
     const html2pdf = (await import('html2pdf.js')).default
-    html2pdf().set(opt).from(element).save()
+
+  // Usar el clon con estilos inline para evitar errores de parseo de CSS modernos
+  const cloned = cloneNodeWithInlineStyles(element)
+    const wrapper = document.createElement('div')
+    wrapper.style.position = 'fixed'
+    wrapper.style.left = '-9999px'
+    wrapper.appendChild(cloned)
+    // Resolver variables CSS en :root que usan lab(...) y crear un style temporal
+    const buildResolvedRootVarsStyle = () => {
+      const computedRoot = window.getComputedStyle(document.documentElement)
+      const rules: string[] = []
+      for (let i = 0; i < computedRoot.length; i++) {
+        const name = computedRoot.item(i)
+        if (!name) continue
+        if (!name.startsWith('--')) continue
+        const val = computedRoot.getPropertyValue(name).trim()
+        if (!val) continue
+        if (/lab\(/i.test(val)) {
+          // intentar resolver a rgb
+          try {
+            const temp = document.createElement('div')
+            temp.style.color = val
+            temp.style.display = 'none'
+            document.body.appendChild(temp)
+            const rgb = window.getComputedStyle(temp).color || ''
+            document.body.removeChild(temp)
+            if (rgb) rules.push(`${name}: ${rgb};`)
+          } catch (e) {
+            rules.push(`${name}: rgb(0,0,0);`)
+          }
+        }
+      }
+      if (rules.length === 0) return null
+      const style = document.createElement('style')
+      style.textContent = `:root { ${rules.join(' ')} }`
+      return style
+    }
+
+    const resolvedRootStyle = buildResolvedRootVarsStyle()
+    if (resolvedRootStyle) wrapper.appendChild(resolvedRootStyle)
+    document.body.appendChild(wrapper)
+
+    // Override temporal directo en :root para variables que contienen lab(...)
+    const root = document.documentElement
+    const originalVars: Record<string, string | null> = {}
+    const toOverride: Array<[string, string]> = []
+    const computedRoot = window.getComputedStyle(root)
+    for (let i = 0; i < computedRoot.length; i++) {
+      const name = computedRoot.item(i)
+      if (!name) continue
+      if (!name.startsWith('--')) continue
+      const val = computedRoot.getPropertyValue(name).trim()
+      if (!val) continue
+      if (/lab\(/i.test(val)) {
+        // intentar resolver
+        try {
+          const temp = document.createElement('div')
+          temp.style.color = val
+          temp.style.display = 'none'
+          document.body.appendChild(temp)
+          const rgb = window.getComputedStyle(temp).color || 'rgb(0,0,0)'
+          document.body.removeChild(temp)
+          originalVars[name] = root.style.getPropertyValue(name) || null
+          toOverride.push([name, rgb])
+        } catch (e) {
+          originalVars[name] = root.style.getPropertyValue(name) || null
+          toOverride.push([name, 'rgb(0,0,0)'])
+        }
+      }
+    }
+
+    for (const [k, v] of toOverride) {
+      root.style.setProperty(k, v)
+    }
+
+    try {
+      await html2pdf().set(opt).from(cloned).save()
+    } finally {
+      // restaurar variables originales
+      for (const [k, _] of toOverride) {
+        const orig = originalVars[k]
+        if (orig === null) root.style.removeProperty(k)
+        else root.style.setProperty(k, orig)
+      }
+      // limpiar style temporal si existe
+      if (resolvedRootStyle && resolvedRootStyle.parentNode) resolvedRootStyle.parentNode.removeChild(resolvedRootStyle)
+      if (wrapper.parentNode) document.body.removeChild(wrapper)
+    }
   }
 
   const handlePrint = () => {

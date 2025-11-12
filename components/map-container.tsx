@@ -18,6 +18,7 @@ export default function MapContainer({ onPointsChange }: MapContainerProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<L.Map | null>(null)
   const markersRef = useRef<L.Marker[]>([])
+  const polylineRef = useRef<L.Polyline | null>(null)
   const [points, setPoints] = useState<MapPoint[]>([])
 
   useEffect(() => {
@@ -33,6 +34,9 @@ export default function MapContainer({ onPointsChange }: MapContainerProps) {
     }).addTo(map)
 
     mapInstanceRef.current = map
+
+  // Track polyline so we can remove it on clear
+  // usar el ref del scope
 
     // Handle clicks to add points
     const handleMapClick = (e: L.LeafletMouseEvent) => {
@@ -51,32 +55,48 @@ export default function MapContainer({ onPointsChange }: MapContainerProps) {
         .addTo(map)
 
       markersRef.current.push(marker)
-      const updatedPoints = [...points, newPoint]
-      setPoints(updatedPoints)
-      onPointsChange?.(updatedPoints)
 
-      // Draw line if two points exist
-      if (updatedPoints.length === 2) {
-        L.polyline(
-          [
-            [updatedPoints[0].lat, updatedPoints[0].lng],
-            [updatedPoints[1].lat, updatedPoints[1].lng],
-          ],
-          { color: "#0ea5e9", weight: 2, dashArray: "5, 5" },
-        ).addTo(map)
-      }
+      // Use functional setState to avoid stale closure
+      setPoints((prev) => {
+        const updated = [...prev, newPoint]
+        onPointsChange?.(updated)
+
+        // Remove existing polyline and draw a new one if two points
+        if (polylineRef.current) {
+          try { map.removeLayer(polylineRef.current) } catch (e) {}
+          polylineRef.current = null
+        }
+        if (updated.length === 2) {
+          polylineRef.current = L.polyline(
+            [
+              [updated[0].lat, updated[0].lng],
+              [updated[1].lat, updated[1].lng],
+            ],
+            { color: "#0ea5e9", weight: 2, dashArray: "5, 5" },
+          ).addTo(map)
+        }
+
+        return updated
+      })
     }
 
     map.on("click", handleMapClick)
 
     return () => {
       map.off("click", handleMapClick)
+  if (polylineRef.current) try { map.removeLayer(polylineRef.current) } catch (e) {}
     }
-  }, [points, onPointsChange])
+  }, [onPointsChange])
 
   const clearPoints = () => {
     markersRef.current.forEach((marker) => marker.remove())
     markersRef.current = []
+    if (polylineRef.current) {
+      try {
+        polylineRef.current.remove()
+      } catch (e) {}
+      polylineRef.current = null
+    }
     setPoints([])
     onPointsChange?.([])
   }
