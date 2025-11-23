@@ -6,191 +6,82 @@ import PdfReportTemplate from "@/components/pdf-report-template"
 
 export default function Export() {
   const [projectName, setProjectName] = useState("Análisis ParaLink")
+  const [isGenerating, setIsGenerating] = useState(false)
   const reportRef = useRef<HTMLDivElement>(null)
 
   const handleDownloadPDF = async () => {
-    if (!reportRef.current) return
+    if (!reportRef.current || isGenerating) return
 
-    const element = reportRef.current
-
-    // Clonar el nodo y aplicar estilos computados inline para evitar que html2canvas intente parsear
-    // funciones de color modernas como lab(), que no están soportadas.
-    const cloneNodeWithInlineStyles = (node: HTMLElement) => {
-      const clone = node.cloneNode(true) as HTMLElement
-
-      const colorProps = [
-        'color',
-        'background',
-        'background-color',
-        'border-color',
-        'border-top-color',
-        'border-right-color',
-        'border-bottom-color',
-        'border-left-color',
-        'outline-color',
-        'box-shadow',
-        'text-shadow',
-        'fill',
-        'stroke'
-      ]
-
-      const resolveColor = (val: string) => {
-        if (!/lab\(/i.test(val)) return val
-        try {
-          const temp = document.createElement('div')
-          temp.style.color = val
-          temp.style.display = 'none'
-          document.body.appendChild(temp)
-          const rgb = window.getComputedStyle(temp).color
-          document.body.removeChild(temp)
-          return rgb || 'rgb(0, 0, 0)'
-        } catch (e) {
-          return 'rgb(0, 0, 0)'
-        }
-      }
-
-      const walk = (orig: Element, copied: Element) => {
-        const computed = window.getComputedStyle(orig as Element)
-
-        // Aplicar propiedades de color críticas como estilos inline con valores resueltos
-        for (const prop of colorProps) {
-          try {
-            const value = computed.getPropertyValue(prop)
-            if (value) {
-              const resolved = resolveColor(value)
-              ;(copied as HTMLElement).style.setProperty(prop, resolved)
-            }
-          } catch (e) {
-            // ignore
-          }
-        }
-
-        // Copiar tamaño, fuentes y layout básicos para conservar apariencia
-        const passthrough = ['font', 'font-size', 'font-family', 'font-weight', 'line-height', 'padding', 'margin', 'width', 'height', 'display', 'vertical-align', 'text-align']
-        for (const prop of passthrough) {
-          try {
-            const v = computed.getPropertyValue(prop)
-            if (v) (copied as HTMLElement).style.setProperty(prop, v)
-          } catch (e) {}
-        }
-
-        // Eliminar variables CSS en el nodo copiado para evitar referencias a lab() desde :root
-        const copiedStyle = (copied as HTMLElement).style
-        for (let i = copiedStyle.length - 1; i >= 0; i--) {
-          const name = copiedStyle.item(i)
-          if (name && name.startsWith('--')) copiedStyle.removeProperty(name)
-        }
-
-        // Repetir para hijos
-        const origChildren = Array.from(orig.children)
-        const copyChildren = Array.from(copied.children)
-        for (let i = 0; i < origChildren.length; i++) {
-          const o = origChildren[i]
-          const c = copyChildren[i]
-          if (o && c) walk(o, c)
-        }
-      }
-
-      walk(node, clone)
-      return clone
-    }
-    const opt: any = {
-      margin: 10,
-      filename: `geoparabola-${new Date().getTime()}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { orientation: 'portrait' as const, unit: 'mm', format: 'a4' },
-    }
-
-    // Import html2pdf dinámicamente
-    const html2pdf = (await import('html2pdf.js')).default
-
-  // Usar el clon con estilos inline para evitar errores de parseo de CSS modernos
-  const cloned = cloneNodeWithInlineStyles(element)
-    const wrapper = document.createElement('div')
-    wrapper.style.position = 'fixed'
-    wrapper.style.left = '-9999px'
-    wrapper.appendChild(cloned)
-    // Resolver variables CSS en :root que usan lab(...) y crear un style temporal
-    const buildResolvedRootVarsStyle = () => {
-      const computedRoot = window.getComputedStyle(document.documentElement)
-      const rules: string[] = []
-      for (let i = 0; i < computedRoot.length; i++) {
-        const name = computedRoot.item(i)
-        if (!name) continue
-        if (!name.startsWith('--')) continue
-        const val = computedRoot.getPropertyValue(name).trim()
-        if (!val) continue
-        if (/lab\(/i.test(val)) {
-          // intentar resolver a rgb
-          try {
-            const temp = document.createElement('div')
-            temp.style.color = val
-            temp.style.display = 'none'
-            document.body.appendChild(temp)
-            const rgb = window.getComputedStyle(temp).color || ''
-            document.body.removeChild(temp)
-            if (rgb) rules.push(`${name}: ${rgb};`)
-          } catch (e) {
-            rules.push(`${name}: rgb(0,0,0);`)
-          }
-        }
-      }
-      if (rules.length === 0) return null
-      const style = document.createElement('style')
-      style.textContent = `:root { ${rules.join(' ')} }`
-      return style
-    }
-
-    const resolvedRootStyle = buildResolvedRootVarsStyle()
-    if (resolvedRootStyle) wrapper.appendChild(resolvedRootStyle)
-    document.body.appendChild(wrapper)
-
-    // Override temporal directo en :root para variables que contienen lab(...)
-    const root = document.documentElement
-    const originalVars: Record<string, string | null> = {}
-    const toOverride: Array<[string, string]> = []
-    const computedRoot = window.getComputedStyle(root)
-    for (let i = 0; i < computedRoot.length; i++) {
-      const name = computedRoot.item(i)
-      if (!name) continue
-      if (!name.startsWith('--')) continue
-      const val = computedRoot.getPropertyValue(name).trim()
-      if (!val) continue
-      if (/lab\(/i.test(val)) {
-        // intentar resolver
-        try {
-          const temp = document.createElement('div')
-          temp.style.color = val
-          temp.style.display = 'none'
-          document.body.appendChild(temp)
-          const rgb = window.getComputedStyle(temp).color || 'rgb(0,0,0)'
-          document.body.removeChild(temp)
-          originalVars[name] = root.style.getPropertyValue(name) || null
-          toOverride.push([name, rgb])
-        } catch (e) {
-          originalVars[name] = root.style.getPropertyValue(name) || null
-          toOverride.push([name, 'rgb(0,0,0)'])
-        }
-      }
-    }
-
-    for (const [k, v] of toOverride) {
-      root.style.setProperty(k, v)
-    }
+    setIsGenerating(true)
 
     try {
-      await html2pdf().set(opt).from(cloned).save()
-    } finally {
-      // restaurar variables originales
-      for (const [k, _] of toOverride) {
-        const orig = originalVars[k]
-        if (orig === null) root.style.removeProperty(k)
-        else root.style.setProperty(k, orig)
+      const element = reportRef.current
+      const htmlContent = element.outerHTML
+
+      // Recopilar todos los estilos del documento
+      let styles = ''
+      for (const sheet of Array.from(document.styleSheets)) {
+        try {
+          // Para hojas de estilo de origen cruzado, el acceso a cssRules puede estar bloqueado.
+          if (sheet.href && !sheet.href.startsWith(window.location.origin)) {
+            // No podemos acceder a las reglas, pero podemos intentar volver a cargar la hoja de estilo
+            // si es necesario, aunque para este caso lo omitiremos para evitar complejidad.
+            console.warn(`Skipping cross-origin stylesheet: ${sheet.href}`)
+            continue
+          }
+          const rules = sheet.cssRules || sheet.rules
+          for (const rule of Array.from(rules)) {
+            styles += rule.cssText
+          }
+        } catch (e) {
+          console.warn('Could not process a stylesheet: ', e)
+        }
       }
-      // limpiar style temporal si existe
-      if (resolvedRootStyle && resolvedRootStyle.parentNode) resolvedRootStyle.parentNode.removeChild(resolvedRootStyle)
-      if (wrapper.parentNode) document.body.removeChild(wrapper)
+      
+      const fullHtml = `
+        <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>PDF Report</title>
+            <style>
+              ${styles}
+            </style>
+          </head>
+          <body>
+            ${htmlContent}
+          </body>
+        </html>
+      `
+
+      const response = await fetch('/api/export-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ htmlContent: fullHtml }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to generate PDF')
+      }
+
+      const pdfBlob = await response.blob()
+      const url = window.URL.createObjectURL(pdfBlob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `paralink-report-${Date.now()}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Error generating PDF:', error)
+      // Aquí podrías mostrar una notificación de error al usuario
+    } finally {
+      setIsGenerating(false)
     }
   }
 
@@ -229,10 +120,20 @@ export default function Export() {
           <div className="flex gap-2">
             <button
               onClick={handleDownloadPDF}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center gap-2"
+              disabled={isGenerating}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Download className="w-4 h-4" />
-              Descargar PDF
+              {isGenerating ? (
+                <>
+                  <span className="animate-spin h-4 w-4 border-t-2 border-b-2 border-primary-foreground rounded-full"></span>
+                  Generando...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  Descargar PDF
+                </>
+              )}
             </button>
             <button
               onClick={handlePrint}

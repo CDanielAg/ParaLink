@@ -48,7 +48,6 @@ export default function Calculator() {
   const [weather, setWeather] = useState<any>(null)
   const [showExportModal, setShowExportModal] = useState(false)
   const [projectName, setProjectName] = useState("Enlace Parabólico")
-  const [exportFormat, setExportFormat] = useState("PDF")
   const [detailLevel, setDetailLevel] = useState("Completo")
   const [isExporting, setIsExporting] = useState(false)
   const reportRef = useRef<HTMLDivElement>(null)
@@ -117,86 +116,68 @@ export default function Calculator() {
     setIsExporting(true)
     
     try {
-      // @ts-ignore - Importación dinámica
-      const html2canvas = (await import('html2canvas')).default
-      // @ts-ignore - Importación dinámica para jsPDF v3
-      const jsPDF = (await import('jspdf')).default
-      
-      // Crear un contenedor temporal con estilos inline para evitar problemas con oklch/lab
-      const tempContainer = document.createElement('div')
-      tempContainer.style.position = 'absolute'
-      tempContainer.style.left = '-9999px'
-      tempContainer.style.top = '0'
-      tempContainer.style.width = reportRef.current.offsetWidth + 'px'
-      tempContainer.style.backgroundColor = '#ffffff'
-      tempContainer.innerHTML = reportRef.current.innerHTML
-      document.body.appendChild(tempContainer)
-      
-      // Aplicar estilos RGB directamente a todos los elementos
-      const allElements = tempContainer.querySelectorAll('*')
-      allElements.forEach((el: any) => {
-        const styles = window.getComputedStyle(el)
-        // Convertir colores computados a RGB
-        if (styles.backgroundColor && styles.backgroundColor !== 'rgba(0, 0, 0, 0)') {
-          el.style.backgroundColor = styles.backgroundColor
-        }
-        if (styles.color) {
-          el.style.color = styles.color
-        }
-        if (styles.borderColor) {
-          el.style.borderColor = styles.borderColor
-        }
-      })
+        // --- Logic for Server-Side PDF Generation ---
+        const element = reportRef.current
+        const htmlContent = element.outerHTML
 
-      const canvas = await html2canvas(tempContainer, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        allowTaint: true,
-        removeContainer: false,
-      })
+        let styles = ''
+        for (const sheet of Array.from(document.styleSheets)) {
+          try {
+            if (sheet.href && !sheet.href.startsWith(window.location.origin)) {
+              console.warn(`Skipping cross-origin stylesheet: ${sheet.href}`)
+              continue
+            }
+            const rules = sheet.cssRules || sheet.rules
+            for (const rule of Array.from(rules)) {
+              styles += rule.cssText
+            }
+          } catch (e) {
+            console.warn('Could not process a stylesheet: ', e)
+          }
+        }
       
-      // Limpiar contenedor temporal
-      document.body.removeChild(tempContainer)
+        const fullHtml = `
+          <!DOCTYPE html>
+          <html lang="en">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>PDF Report</title>
+              <style>${styles}</style>
+            </head>
+            <body>${htmlContent}</body>
+          </html>
+        `
 
-      const imgData = canvas.toDataURL('image/png')
-      const imgWidth = canvas.width
-      const imgHeight = canvas.height
-
-      if (exportFormat === 'PDF (Recomendado)' || exportFormat === 'PDF') {
-        // Crear PDF
-        const pdf = new jsPDF({
-          orientation: imgWidth > imgHeight ? 'landscape' : 'portrait',
-          unit: 'px',
-          format: [imgWidth, imgHeight]
+        const response = await fetch('/api/export-pdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ htmlContent: fullHtml }),
         })
-        
-        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight)
-        pdf.save(`${projectName.replace(/\s+/g, '_')}_${new Date().getTime()}.pdf`)
-      } else if (exportFormat === 'PNG') {
-        // Descargar PNG
-        const link = document.createElement('a')
-        link.download = `${projectName.replace(/\s+/g, '_')}_${new Date().getTime()}.png`
-        link.href = imgData
-        link.click()
-      } else if (exportFormat === 'SVG') {
-        // Para SVG, convertimos el canvas a PNG (SVG real requeriría re-renderizar todo)
-        // Alternativamente podrías usar una librería como dom-to-svg
-        const link = document.createElement('a')
-        link.download = `${projectName.replace(/\s+/g, '_')}_${new Date().getTime()}.png`
-        link.href = imgData
-        link.click()
-        alert('Nota: La exportación SVG guarda como PNG de alta calidad')
-      }
 
-      // Cerrar modal después de exportar
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.details || 'Failed to generate PDF on server')
+        }
+
+        const pdfBlob = await response.blob()
+        const url = window.URL.createObjectURL(pdfBlob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${projectName.replace(/\s+/g, '_')}_${new Date().getTime()}.pdf`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+
+      // Close modal after export
       setTimeout(() => {
         setShowExportModal(false)
         setIsExporting(false)
       }, 500)
+
     } catch (error) {
-      console.error('Error al exportar:', error)
+      console.error('Error during export:', error)
       alert('Error al generar el archivo. Por favor intenta de nuevo.')
       setIsExporting(false)
     }
@@ -333,18 +314,6 @@ export default function Calculator() {
                     onChange={(e) => setProjectName(e.target.value)}
                     className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground mb-2 block">Formato</label>
-                  <select
-                    value={exportFormat}
-                    onChange={(e) => setExportFormat(e.target.value)}
-                    className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    <option>PDF (Recomendado)</option>
-                    <option>PNG</option>
-                    <option>SVG</option>
-                  </select>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground mb-2 block">
@@ -501,7 +470,7 @@ export default function Calculator() {
                 ) : (
                   <>
                     <Download className="w-4 h-4" />
-                    Descargar {exportFormat}
+                    Descargar PDF
                   </>
                 )}
               </button>
