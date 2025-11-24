@@ -14,7 +14,6 @@ export default function Navbar() {
     { name: "Línea de Vista", href: "/line-of-sight" },
     { name: "Orientador Satelital", href: "/satellite" },
     { name: "Optimización", href: "/optimization" },
-    { name: "Exportar", href: "/export" },
     { name: "Teoría", href: "/theory" },
     { name: "Utilidades", href: "/utilities" },
   ]

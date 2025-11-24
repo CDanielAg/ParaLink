@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Satellite } from "lucide-react"
+import { Satellite, Download } from "lucide-react"
 import dynamic from "next/dynamic"
 import {
   satellites,
@@ -31,10 +31,14 @@ export default function SatelliteOrientation() {
   const [selectedSatellite, setSelectedSatellite] = useState(0)
   const [satelliteData, setSatelliteData] = useState<SatelliteData | null>(null)
   const [points, setPoints] = useState<MapPoint[]>([])
+  
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+  const [projectName, setProjectName] = useState("Reporte de Orientación Satelital")
+  const reportRef = useRef<HTMLDivElement>(null)
 
   const mapRef = useRef<MapContainerHandle | null>(null)
 
-  // Actualiza orientación al cambiar punto o satélite
   useEffect(() => {
     if (points.length > 0) {
       const observer = points[0]
@@ -45,11 +49,51 @@ export default function SatelliteOrientation() {
         observer.lng,
         satPos.lat,
         satPos.lng,
-        satType.altitude, // ahora se usa la altitud real del satélite
+        satType.altitude,
       )
       setSatelliteData(orientation)
+    } else {
+      setSatelliteData(null)
     }
   }, [points, selectedType, selectedSatellite])
+
+  const handleExport = async () => {
+    if (!reportRef.current) return
+    setIsExporting(true)
+
+    try {
+      const reportHtml = reportRef.current.outerHTML
+      const response = await fetch('/api/export-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ htmlContent: reportHtml }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        const error = new Error(errorData.details || 'Failed to generate PDF')
+        console.error("Error during export:", error)
+        alert(`Error durante la exportación: ${error.message}`)
+        throw error
+      }
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${projectName.replace(/ /g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      setShowExportModal(false)
+    } catch (error) {
+      // Error is already logged and alerted
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   const currentSatType = satellites[selectedType] as any
   const currentSatellite = currentSatType.satellites[selectedSatellite]
@@ -112,21 +156,21 @@ export default function SatelliteOrientation() {
                 <div>
                   <p className="text-xs text-muted-foreground">Azimut</p>
                   <p className="text-3xl font-bold text-primary">
-                    {satelliteData?.azimuth.toFixed(1)}°
+                    {satelliteData?.azimuth.toFixed(1) ?? "-"}°
                   </p>
                 </div>
 
                 <div>
                   <p className="text-xs text-muted-foreground">Elevación</p>
                   <p className="text-3xl font-bold text-accent">
-                    {satelliteData?.elevation.toFixed(1)}°
+                    {satelliteData?.elevation.toFixed(1) ?? "-"}°
                   </p>
                 </div>
 
                 <div>
                   <p className="text-xs text-muted-foreground">Distancia</p>
                   <p className="text-xl font-semibold">
-                    {satelliteData?.distance.toFixed(0)} km
+                    {satelliteData?.distance.toFixed(0) ?? "-"} km
                   </p>
                 </div>
 
@@ -151,15 +195,26 @@ export default function SatelliteOrientation() {
                 <button
                   onClick={() => mapRef.current?.addMarkerAtCenter()}
                   disabled={points.length >= 1}
-                  className="w-full px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 text-sm"
+                  className="w-full px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Colocar en centro
                 </button>
                 <button
-                  onClick={() => mapRef.current?.clearPoints()}
+                  onClick={() => {
+                    mapRef.current?.clearPoints()
+                    setPoints([])
+                  }}
                   className="w-full px-4 py-2 bg-destructive text-destructive-foreground rounded-lg font-medium hover:bg-destructive/90 transition-colors flex items-center justify-center gap-2 text-sm"
                 >
                   Limpiar punto
+                </button>
+                <button
+                  onClick={() => setShowExportModal(true)}
+                  disabled={!satelliteData}
+                  className="w-full px-4 py-2 bg-muted text-foreground rounded-lg font-medium hover:bg-muted/80 transition-colors flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Download className="w-4 h-4" />
+                  Exportar Reporte
                 </button>
               </div>
             </div>
@@ -221,7 +276,7 @@ export default function SatelliteOrientation() {
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Ángulo de Elevación</p>
                     <p className="text-xl font-semibold">
-                      {satelliteData?.elevation.toFixed(1)}° sobre el horizonte
+                      {satelliteData?.elevation.toFixed(1) ?? "-"}° sobre el horizonte
                     </p>
                   </div>
 
@@ -237,11 +292,134 @@ export default function SatelliteOrientation() {
           </div>
         </div>
       </div>
+
+      {/* Export Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="bg-card rounded-lg border border-border max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-border flex items-center justify-between">
+              <h2 className="text-xl font-bold">Vista Previa del Reporte</h2>
+              <button
+                onClick={() => setShowExportModal(false)}
+                className="text-muted-foreground hover:text-foreground transition-colors text-2xl"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 border-b border-border">
+              <h3 className="text-lg font-bold mb-4">Configuración del Reporte</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                    Nombre del Proyecto
+                  </label>
+                  <input
+                    type="text"
+                    value={projectName}
+                    onChange={(e) => setProjectName(e.target.value)}
+                    className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-6 bg-muted/5">
+              <div ref={reportRef} className="bg-white text-black p-8 rounded-lg border border-gray-300">
+                <div className="border-b-2 border-blue-600 pb-4 mb-6">
+                  <h1 className="text-3xl font-bold text-blue-600">{projectName}</h1>
+                  <p className="text-sm text-gray-600 mt-2">
+                    Reporte de Orientación Satelital - {new Date().toLocaleDateString("es-ES")}
+                  </p>
+                </div>
+
+                {points.length > 0 && (
+                  <div className="mb-6">
+                    <h2 className="text-xl font-bold mb-3">Ubicación del Observador</h2>
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                      <p className="text-sm text-gray-700">Latitud: {points[0].lat.toFixed(6)}°</p>
+                      <p className="text-sm text-gray-700">Longitud: {points[0].lng.toFixed(6)}°</p>
+                    </div>
+                  </div>
+                )}
+
+                {satelliteData && (
+                  <>
+                    <div className="mb-6">
+                      <h2 className="text-xl font-bold mb-3">Satélite Seleccionado</h2>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                          <p className="font-semibold text-blue-600 mb-2">Nombre</p>
+                          <p className="text-lg">{currentSatellite.name}</p>
+                        </div>
+                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                          <p className="font-semibold text-blue-600 mb-2">Tipo</p>
+                          <p className="text-lg">{currentSatType.name}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mb-6">
+                      <h2 className="text-xl font-bold mb-3">Resultados de Orientación</h2>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                          <p className="text-xs text-gray-600 mb-1">Azimut</p>
+                          <p className="text-2xl font-bold text-blue-700">{satelliteData.azimuth.toFixed(2)}°</p>
+                        </div>
+                        <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                          <p className="text-xs text-gray-600 mb-1">Elevación</p>
+                          <p className="text-2xl font-bold text-green-700">{satelliteData.elevation.toFixed(2)}°</p>
+                        </div>
+                        <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                          <p className="text-xs text-gray-600 mb-1">Distancia</p>
+                          <p className="text-2xl font-bold text-purple-700">{satelliteData.distance.toFixed(0)} km</p>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+                
+                <div className="border-t-2 border-gray-200 pt-4 mt-6">
+                  <p className="text-xs text-gray-500 text-center">
+                    Generado por ParaLink - {new Date().toLocaleString("es-ES")}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-border flex gap-3">
+               <button
+                onClick={() => setShowExportModal(false)}
+                disabled={isExporting}
+                className="flex-1 px-4 py-2 bg-muted text-foreground rounded-lg font-medium hover:bg-muted/80 transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleExport}
+                disabled={isExporting || !satelliteData}
+                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isExporting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Generando...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" />
+                    Descargar PDF
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
 
-// Calcular dirección cardinal
 function getDirection(azimuth: number): string {
   const dirs = [
     "N","NNE","NE","ENE","E","ESE","SE","SSE",
