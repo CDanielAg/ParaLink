@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import dynamic from "next/dynamic"
-import { Cloud, Droplets, Wind, Gauge, MapPin, Trash2 } from "lucide-react"
+import { Cloud, Droplets, Wind, Gauge, MapPin, Trash2, Download } from "lucide-react"
 import SignalQualityGauge from "@/components/signal-quality-gauge"
 import type { MapContainerHandle } from "@/components/map-container"
 
@@ -38,6 +38,10 @@ export default function Optimization() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
   const [points, setPoints] = useState<MapPoint[]>([])
   const mapRef = useRef<MapContainerHandle | null>(null)
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [projectName, setProjectName] = useState("Reporte de Optimización de Señal")
+  const [isExporting, setIsExporting] = useState(false)
+  const reportRef = useRef<HTMLDivElement>(null)
 
   // Actualiza automáticamente el clima al seleccionar un punto
   useEffect(() => {
@@ -132,6 +136,77 @@ export default function Optimization() {
     }
   }
 
+  const handleExport = async () => {
+    if (!reportRef.current) return
+    
+    setIsExporting(true)
+    
+    try {
+        const element = reportRef.current
+        const htmlContent = element.outerHTML
+
+        let styles = ''
+        for (const sheet of Array.from(document.styleSheets)) {
+          try {
+            if (sheet.href && !sheet.href.startsWith(window.location.origin)) {
+              console.warn(`Skipping cross-origin stylesheet: ${sheet.href}`)
+              continue
+            }
+            const rules = sheet.cssRules || sheet.rules
+            for (const rule of Array.from(rules)) {
+              styles += rule.cssText
+            }
+          } catch (e) {
+            console.warn('Could not process a stylesheet: ', e)
+          }
+        }
+      
+        const fullHtml = `
+          <!DOCTYPE html>
+          <html lang="en">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>PDF Report</title>
+              <style>${styles}</style>
+            </head>
+            <body>${htmlContent}</body>
+          </html>
+        `
+
+        const response = await fetch('/api/export-pdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ htmlContent: fullHtml }),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.details || 'Failed to generate PDF on server')
+        }
+
+        const pdfBlob = await response.blob()
+        const url = window.URL.createObjectURL(pdfBlob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${projectName.replace(/\s+/g, '_')}_${new Date().getTime()}.pdf`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+
+      setTimeout(() => {
+        setShowExportModal(false)
+        setIsExporting(false)
+      }, 500)
+
+    } catch (error) {
+      console.error('Error during export:', error)
+      alert('Error al generar el archivo. Por favor intenta de nuevo.')
+      setIsExporting(false)
+    }
+  }
+
   return (
     <main className="pt-20 min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -169,6 +244,14 @@ export default function Optimization() {
               >
                 <Trash2 className="w-4 h-4" />
                 Limpiar
+              </button>
+               <button
+                onClick={() => setShowExportModal(true)}
+                disabled={points.length < 1}
+                className="flex-1 px-4 py-2 bg-muted text-foreground rounded-lg font-medium hover:bg-muted/80 transition-colors flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download className="w-4 h-4" />
+                Exportar Reporte
               </button>
             </div>
           </div>
@@ -249,6 +332,147 @@ export default function Optimization() {
           </div>
         </div>
       </div>
+
+       {/* Export Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="bg-card rounded-lg border border-border max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-border flex items-center justify-between">
+              <h2 className="text-xl font-bold">Vista Previa del Reporte</h2>
+              <button
+                onClick={() => setShowExportModal(false)}
+                className="text-muted-foreground hover:text-foreground transition-colors text-2xl"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Settings */}
+            <div className="p-6 border-b border-border">
+              <h3 className="text-lg font-bold mb-4">Configuración del Reporte</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                    Nombre del Proyecto
+                  </label>
+                  <input
+                    type="text"
+                    value={projectName}
+                    onChange={(e) => setProjectName(e.target.value)}
+                    className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Preview Content */}
+            <div className="p-6 bg-muted/5">
+                <div ref={reportRef} data-report-content className="bg-white text-black p-8 rounded-lg border border-gray-300">
+                    {/* Header */}
+                    <div className="border-b-2 border-blue-600 pb-4 mb-6">
+                    <h1 className="text-3xl font-bold text-blue-600">{projectName}</h1>
+                    <p className="text-sm text-gray-600 mt-2">
+                        Reporte de Optimización de Señal - {new Date().toLocaleDateString("es-ES")}
+                    </p>
+                    </div>
+
+                    {/* Location Info */}
+                    {points.length > 0 && (
+                        <div className="mb-6">
+                        <h2 className="text-xl font-bold mb-3">Ubicación Analizada</h2>
+                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <p className="font-semibold text-blue-600 mb-2">Punto de Referencia</p>
+                            <p className="text-sm text-gray-700">Latitud: {points[0].lat.toFixed(6)}°</p>
+                            <p className="text-sm text-gray-700">Longitud: {points[0].lng.toFixed(6)}°</p>
+                        </div>
+                        </div>
+                    )}
+                    
+                    {/* Signal & Weather */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        {/* Signal Quality */}
+                        <div>
+                            <h2 className="text-xl font-bold mb-3">Calidad de Señal Estimada</h2>
+                             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 text-center">
+                                <p className="text-5xl font-bold text-blue-700">{signalQuality}%</p>
+                                <p className="text-xs text-gray-600 mt-1">Calidad Estimada</p>
+                            </div>
+                        </div>
+                        {/* Weather */}
+                        {weather && (
+                             <div>
+                                <h2 className="text-xl font-bold mb-3">Condiciones Climáticas</h2>
+                                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-2">
+                                     <div className="flex justify-between text-sm"><span className="text-gray-600">Temperatura:</span> <span className="font-semibold">{weather.temperature}°C</span></div>
+                                     <div className="flex justify-between text-sm"><span className="text-gray-600">Humedad:</span> <span className="font-semibold">{weather.humidity}%</span></div>
+                                     <div className="flex justify-between text-sm"><span className="text-gray-600">Viento:</span> <span className="font-semibold">{weather.windSpeed} km/h</span></div>
+                                     <div className="flex justify-between text-sm"><span className="text-gray-600">Nubosidad:</span> <span className="font-semibold">{weather.cloudCover}%</span></div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+
+                    {/* Recommendations */}
+                    {recommendations.length > 0 && (
+                        <div className="mb-6">
+                            <h2 className="text-xl font-bold mb-3">Recomendaciones</h2>
+                            <div className="space-y-3">
+                                {recommendations.map((rec, idx) => (
+                                    <div key={idx} className="bg-gray-50 p-3 rounded-lg border border-gray-200 flex items-start gap-3">
+                                        <div className="text-blue-600 mt-1">{rec.icon}</div>
+                                        <div>
+                                            <p className="font-semibold">{rec.title}</p>
+                                            <p className="text-sm text-gray-700">{rec.description}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+
+                    {/* Footer */}
+                    <div className="border-t-2 border-gray-200 pt-4 mt-6">
+                        <p className="text-xs text-gray-500 text-center">
+                            Generado por ParaLink - {new Date().toLocaleString("es-ES")}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+
+            {/* Modal Actions */}
+            <div className="p-6 border-t border-border flex gap-3">
+              <button
+                onClick={() => setShowExportModal(false)}
+                disabled={isExporting}
+                className="flex-1 px-4 py-2 bg-muted text-foreground rounded-lg font-medium hover:bg-muted/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleExport}
+                disabled={isExporting}
+                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isExporting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Generando...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" />
+                    Descargar PDF
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
