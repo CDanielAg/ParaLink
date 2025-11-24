@@ -1,5 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
+import puppeteer from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,13 +11,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'HTML content is required' }, { status: 400 });
     }
 
-    // Dynamic import for puppeteer
-    const puppeteer = (await import('puppeteer')).default;
-
     const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
     });
+    
     const page = await browser.newPage();
     
     // Set a viewport that matches a standard A4 page aspect ratio
