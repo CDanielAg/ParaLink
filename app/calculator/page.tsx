@@ -181,14 +181,14 @@ export default function Calculator() {
 
   return (
     <main className="pt-16">
-      <div className="h-screen bg-card relative flex">
-        {/* Map - Left Side */}
-        <div className="flex-1 relative">
+      <div className="h-screen bg-card relative flex flex-col lg:flex-row">
+        {/* Map - Top on mobile, Left Side on desktop */}
+        <div className="relative h-[40vh] lg:h-auto lg:flex-1">
           <MapContainer ref={mapRef} onPointsChange={setPoints} />
         </div>
 
-        {/* Right Panel */}
-        <div className="w-96 bg-card/95 border-l border-border backdrop-blur-sm overflow-y-auto">
+        {/* Right Panel - Bottom on mobile, Right Side on desktop */}
+        <div className="w-full lg:w-96 bg-card/95 lg:border-l border-border backdrop-blur-sm flex-1 overflow-y-auto">
           <div className="p-6 space-y-6">
             <div>
               <h2 className="text-2xl font-bold">Calculadora Parabólica</h2>

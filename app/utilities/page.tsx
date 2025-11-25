@@ -100,14 +100,14 @@ export default function Utilities() {
                     placeholder="Metros"
                     value={converters.metersKm.meters}
                     onChange={(e) => handleMeterConvert(e, "meters")}
-                    className="flex-1 px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="flex-1 min-w-0 px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                   <input
                     type="number"
                     placeholder="Kilómetros"
                     value={converters.metersKm.kilometers}
                     onChange={(e) => handleMeterConvert(e, "kilometers")}
-                    className="flex-1 px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="flex-1 min-w-0 px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
               </div>
@@ -121,14 +121,14 @@ export default function Utilities() {
                     placeholder="dBm"
                     value={converters.dbmMw.dbm}
                     onChange={(e) => handleDbmConvert(e, "dbm")}
-                    className="flex-1 px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="flex-1 min-w-0 px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                   <input
                     type="number"
                     placeholder="mW"
                     value={converters.dbmMw.mw}
                     onChange={(e) => handleDbmConvert(e, "mw")}
-                    className="flex-1 px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="flex-1 min-w-0 px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
               </div>
@@ -142,14 +142,14 @@ export default function Utilities() {
                     placeholder="Grados"
                     value={converters.degreesRadians.degrees}
                     onChange={(e) => handleDegreesConvert(e, "degrees")}
-                    className="flex-1 px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="flex-1 min-w-0 px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                   <input
                     type="number"
                     placeholder="Radianes"
                     value={converters.degreesRadians.radians}
                     onChange={(e) => handleDegreesConvert(e, "radians")}
-                    className="flex-1 px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="flex-1 min-w-0 px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
               </div>
@@ -165,14 +165,14 @@ export default function Utilities() {
                     placeholder="Frecuencia (GHz)"
                     value={converters.frequencyWavelength.frequency}
                     onChange={(e) => handleFrequencyConvert(e, "frequency")}
-                    className="flex-1 px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="flex-1 min-w-0 px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                   <input
                     type="number"
                     placeholder="Longitud (m)"
                     value={converters.frequencyWavelength.wavelength}
                     onChange={(e) => handleFrequencyConvert(e, "wavelength")}
-                    className="flex-1 px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="flex-1 min-w-0 px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
               </div>
