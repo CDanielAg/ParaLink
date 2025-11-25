@@ -1,132 +1,148 @@
 # ParaLink
 
-ParaLink is a comprehensive web application designed to assist in various aspects of link analysis and optimization, likely within the telecommunications, networking, or geographic information systems (GIS) domain. It provides tools for calculating line-of-sight, optimizing parameters, visualizing satellite data, and performing other related utilities. The application aims to offer an intuitive interface for complex technical calculations and data visualization.
+ParaLink es una aplicación web integral diseñada para asistir en varios aspectos del análisis y la optimización de enlaces, probablemente dentro del dominio de las telecomunicaciones, redes o sistemas de información geográfica (SIG). Proporciona herramientas para calcular línea de vista, optimizar parámetros, visualizar datos satelitales y realizar otras utilidades relacionadas. La aplicación tiene como objetivo ofrecer una interfaz intuitiva para cálculos técnicos complejos y visualización de datos.
 
-## Features
+## Características
 
-ParaLink is structured into several key modules, each serving a specific purpose:
+ParaLink está estructurado en varios módulos clave, cada uno con un propósito específico y una lógica subyacente detallada:
 
-### Modules/Pages:
+### Módulos/Páginas:
 
-*   **Calculator (`app/calculator/page.tsx`)**: Provides general calculation tools. This module likely includes various formulas or interactive calculators relevant to link analysis, such as signal strength, path loss, or other propagation models.
-*   **Line of Sight (`app/line-of-sight/page.tsx`)**: Offers functionality to determine the direct visibility between two points. This is crucial for planning wireless links, antenna placement, and understanding terrain interference. It likely integrates mapping features (`components/map-container.tsx`, `leaflet`) and terrain profile visualization (`components/terrain-profile-chart.tsx`).
-*   **Optimization (`app/optimization/page.tsx`)**: Focuses on finding optimal parameters or configurations for a given link or system. This could involve optimizing antenna angles, power levels, or other variables to achieve desired performance.
-*   **Satellite (`app/satellite/page.tsx`)**: Displays and analyzes satellite-related data. This might include satellite positions, coverage areas, orbital parameters, or tools for planning satellite communication links using `lib/satellite-data.ts`.
-*   **Theory (`app/theory/page.tsx`)**: Contains educational content or theoretical explanations related to link analysis principles, propagation models, and relevant physics.
-*   **Utilities (`app/utilities/page.tsx`)**: A collection of miscellaneous helpful tools that support the primary modules, such as unit converters, data formatters, or other helper functions.
+*   **Calculadora (`app/calculator/page.tsx`)**:
+    *   **Función**: Proporciona herramientas de cálculo general para enlaces.
+    *   **Lógica**: Al seleccionar dos puntos en el mapa, calcula la distancia utilizando la fórmula de Haversine, el azimut y el ángulo de elevación entre ellos. Integra la API de OpenElevation para obtener datos precisos de altitud de los puntos y la API de Open-Meteo para las condiciones meteorológicas locales del punto A. Adicionalmente, sugiere el diámetro de antena óptimo y estima un margen de error para el enlace.
+    *   **Componentes Clave**: Utiliza `MapContainer` para la selección y visualización de puntos, `lib/calculations.ts` para las operaciones matemáticas fundamentales y `ExportModal` junto con `app/api/export-pdf/route.ts` y `puppeteer-core` para la generación y descarga de informes PDF detallados.
+*   **Línea de Vista (`app/line-of-sight/page.tsx`)**:
+    *   **Función**: Ofrece la funcionalidad para determinar la visibilidad directa entre dos puntos geográficos.
+    *   **Lógica**: Crucial para la planificación de enlaces inalámbricos y la ubicación de antenas. Este módulo probablemente recupera perfiles de elevación a lo largo de una trayectoria definida por dos puntos para identificar posibles obstrucciones del terreno, garantizando una comunicación ininterrumpida.
+    *   **Componentes Clave**: Se basa en `MapContainer` para la entrada geográfica y `TerrainProfileChart` para la visualización interactiva de los datos de elevación del terreno.
+*   **Optimización (`app/optimization/page.tsx`)**:
+    *   **Función**: Se centra en encontrar los parámetros o configuraciones óptimos para un enlace o sistema dado.
+    *   **Lógica**: Este módulo proporcionaría herramientas para optimizar variables como los ángulos de la antena, los niveles de potencia o la selección de frecuencia. Podría emplear algoritmos iterativos o simulaciones para lograr el mejor rendimiento posible o el cumplimiento de las regulaciones específicas. (Nota: La implementación detallada de la lógica de optimización se añadiría en futuras iteraciones).
+*   **Orientador Satelital (`app/satellite/page.tsx`)**:
+    *   **Función**: Muestra y analiza datos relacionados con satélites.
+    *   **Lógica**: Podría incluir la visualización de posiciones satelitales, áreas de cobertura y parámetros orbitales en tiempo real o proyectados. Permite a los usuarios rastrear satélites específicos, calcular ángulos de apuntamiento de antenas terrestres o planificar enlaces de comunicación satelital utilizando datos gestionados por `lib/satellite-data.ts`.
+    *   **Componentes Clave**: Probablemente utiliza `MapContainer` para mostrar las posiciones de los satélites en relación con las estaciones terrestres y podría integrar gráficos para visualizar datos orbitales.
+*   **Teoría (`app/theory/page.tsx`)**:
+    *   **Función**: Contiene contenido educativo o explicaciones teóricas.
+    *   **Lógica**: Proporciona recursos de aprendizaje sobre principios fundamentales de la propagación de radio, análisis de presupuesto de enlace, teoría de antenas y otros temas relevantes para mejorar la comprensión del usuario sobre los conceptos subyacentes.
+*   **Utilidades (`app/utilities/page.tsx`)**:
+    *   **Función**: Una colección de herramientas misceláneas útiles que complementan los módulos principales.
+    *   **Lógica**: Ofrece convertidores rápidos para unidades comunes en telecomunicaciones (metros a kilómetros, dBm a mW, grados a radianes, frecuencia a longitud de onda). Las conversiones se realizan en el lado del cliente con actualizaciones en tiempo real a medida que el usuario escribe. También incluye un comprobador de estado para las APIs externas utilizadas por la aplicación.
+    *   **Componentes Clave**: Campos de entrada simples con lógica de conversión en tiempo real y componentes para mostrar el estado de las APIs.
 
-### Core Components & Functionality:
+### Componentes y Funcionalidades Principales:
 
-*   **PDF Export (`app/api/export-pdf/route.ts`, `hooks/use-pdf-export.ts`)**: Allows users to export reports or visualizations generated within the application as PDF documents, utilizing `@sparticuz/chromium` and `puppeteer-core`.
-*   **Mapping (`components/map-container.tsx`, `leaflet`)**: Integrates interactive maps for geographical context, essential for line-of-sight and potentially satellite tracking.
-*   **Charting (`components/terrain-profile-chart.tsx`, `components/signal-quality-gauge.tsx`, `recharts`)**: Visualizes data effectively, such as terrain profiles, signal quality metrics, and other analytical results.
-*   **Responsive UI**: Utilizes `@radix-ui` components and Tailwind CSS for a modern, accessible, and responsive user interface across various devices.
+*   **Exportación a PDF (`app/api/export-pdf/route.ts`, `hooks/use-pdf-export.ts`)**: Permite a los usuarios exportar informes o visualizaciones generadas dentro de la aplicación como documentos PDF, utilizando `@sparticuz/chromium` y `puppeteer-core` para el renderizado del lado del servidor.
+*   **Cartografía (`components/map-container.tsx`, `leaflet`)**: Integra mapas interactivos para proporcionar contexto geográfico, esencial para la línea de vista y el seguimiento satelital.
+*   **Gráficos (`components/terrain-profile-chart.tsx`, `components/signal-quality-gauge.tsx`, `recharts`)**: Visualiza datos de manera efectiva, como perfiles de terreno, métricas de calidad de señal y otros resultados analíticos.
+*   **Interfaz de Usuario Responsiva**: Utiliza componentes `@radix-ui` y Tailwind CSS para una interfaz de usuario moderna, accesible y que se adapta a diferentes dispositivos.
 
-## Technologies Used
+## Tecnologías Utilizadas
 
-*   **Framework**: Next.js (React Framework)
-*   **Language**: TypeScript
-*   **Styling**: Tailwind CSS
-*   **UI Components**: Radix UI (various packages like `@radix-ui/react-dialog`, `@radix-ui/react-slider`, etc.)
-*   **Mapping**: Leaflet (`leaflet`)
-*   **Charting**: Recharts (`recharts`)
-*   **Form Handling**: React Hook Form (`react-hook-form`) with Zod (`zod`) resolvers
-*   **PDF Generation**: Puppeteer Core (`puppeteer-core`) with Chromium (`@sparticuz/chromium`) for server-side rendering/export.
-*   **Utilities**: `clsx`, `tailwind-merge`, `date-fns`, etc.
+*   **Framework**: Next.js (Marco de trabajo de React)
+*   **Lenguaje**: TypeScript
+*   **Estilos**: Tailwind CSS
+*   **Componentes UI**: Radix UI (varios paquetes como `@radix-ui/react-dialog`, `@radix-ui/react-slider`, etc.)
+*   **Cartografía**: Leaflet (`leaflet`)
+*   **Gráficos**: Recharts (`recharts`)
+*   **Manejo de Formularios**: React Hook Form (`react-hook-form`) con validación Zod (`zod`)
+*   **Generación de PDF**: Puppeteer Core (`puppeteer-core`) con Chromium (`@sparticuz/chromium`) para el renderizado/exportación del lado del servidor.
+*   **Utilidades**: `clsx`, `tailwind-merge`, `date-fns`, etc.
 
-## Getting Started
+## Comenzando
 
-Follow these instructions to set up the project locally and run it.
+Sigue estas instrucciones para configurar el proyecto localmente y ejecutarlo.
 
-### Prerequisites
+### Prerrequisitos
 
-Make sure you have the following installed on your machine:
+Asegúrate de tener lo siguiente instalado en tu máquina:
 
-*   Node.js (LTS version recommended)
-*   pnpm (or npm/yarn, but `pnpm-lock.yaml` suggests pnpm is preferred)
+*   Node.js (se recomienda la versión LTS)
+*   pnpm (o npm/yarn, pero `pnpm-lock.yaml` sugiere que se prefiere pnpm)
 
-### Installation
+### Instalación
 
-1.  **Clone the repository:**
+1.  **Clona el repositorio:**
     ```bash
-    git clone https://github.com/your-username/ParaLink.git # Replace with actual repository URL
+    git clone https://github.com/your-username/ParaLink.git # Reemplaza con la URL real del repositorio
     cd ParaLink
     ```
 
-2.  **Install dependencies:**
-    If using pnpm:
+2.  **Instala las dependencias:**
+    Si usas pnpm:
     ```bash
     pnpm install
     ```
-    If using npm:
+    Si usas npm:
     ```bash
     npm install
     ```
-    If using yarn:
+    Si usas yarn:
     ```bash
     yarn install
     ```
 
-### Running the Development Server
+### Ejecutando el Servidor de Desarrollo
 
-To start the development server:
+Para iniciar el servidor de desarrollo:
 
 ```bash
 pnpm run dev
-# or npm run dev
-# or yarn dev
+# o npm run dev
+# o yarn dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abre [http://localhost:3000](http://localhost:3000) en tu navegador para ver el resultado.
 
-The application will automatically reload if you make changes to the source code.
+La aplicación se recargará automáticamente si realizas cambios en el código fuente.
 
-### Building for Production
+### Construyendo para Producción
 
-To build the application for production:
+Para construir la aplicación para producción:
 
 ```bash
 pnpm run build
-# or npm run build
-# or yarn build
+# o npm run build
+# o yarn build
 ```
 
-This will create an optimized build of your application in the `.next` folder.
+Esto creará una versión optimizada de tu aplicación en la carpeta `.next`.
 
-### Starting the Production Server
+### Iniciando el Servidor de Producción
 
-To run the built application in production mode:
+Para ejecutar la aplicación construida en modo de producción:
 
 ```bash
 pnpm run start
-# or npm run start
-# or yarn start
+# o npm run start
+# o yarn start
 ```
 
-Make sure you have built the project first using `pnpm run build`.
+Asegúrate de haber construido el proyecto primero usando `pnpm run build`.
 
 ### Linting
 
-To run the linter and check for code style issues:
+Para ejecutar el linter y verificar problemas de estilo de código:
 
 ```bash
 pnpm run lint
-# or npm run lint
-# or yarn lint
+# o npm run lint
+# o yarn lint
 ```
 
-## Project Structure
+## Estructura del Proyecto
 
-Here's a brief overview of the main directories and their contents:
+Aquí tienes una breve descripción de los directorios principales y su contenido:
 
-*   `app/`: Contains the Next.js pages and API routes. Each subdirectory typically represents a main section or feature of the application.
-    *   `app/api/`: Next.js API routes (e.g., `export-pdf` for server-side PDF generation).
-*   `components/`: Houses reusable React components, including UI elements (`components/ui`) and specific application components (e.g., `map-container.tsx`, `terrain-profile-chart.tsx`).
-*   `hooks/`: Custom React hooks to encapsulate reusable logic (e.g., `use-pdf-export.ts`).
-*   `lib/`: Contains utility functions and business logic (e.g., `calculations.ts`, `satellite-data.ts`).
-*   `public/`: Static assets (images, fonts, etc.).
-*   `styles/`: Global CSS or Tailwind CSS configurations.
+*   `app/`: Contiene las páginas y rutas API de Next.js. Cada subdirectorio suele representar una sección principal o característica de la aplicación.
+    *   `app/api/`: Rutas API de Next.js (por ejemplo, `export-pdf` para la generación de PDF del lado del servidor).
+*   `components/`: Aloja componentes React reutilizables, incluidos elementos UI (`components/ui`) y componentes específicos de la aplicación (por ejemplo, `map-container.tsx`, `terrain-profile-chart.tsx`).
+*   `hooks/`: Hooks de React personalizados para encapsular lógica reutilizable (por ejemplo, `use-pdf-export.ts`).
+*   `lib/`: Contiene funciones de utilidad y lógica de negocio (por ejemplo, `calculations.ts`, `satellite-data.ts`).
+*   `public/`: Activos estáticos (imágenes, fuentes, etc.).
+*   `styles/`: Configuraciones globales de CSS o Tailwind CSS.
 
 ---
 
-This `README.md` provides a detailed overview of the project, its modules, technologies, and how to get started.
+Este `README.md` proporciona una visión detallada del proyecto, sus módulos, tecnologías y cómo empezar.
