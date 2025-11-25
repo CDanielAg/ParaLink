@@ -32,11 +32,44 @@ export function normalizeAzimuth(azimuth: number): number {
   return ((azimuth % 360) + 360) % 360
 }
 
-// Calculate suggested antenna diameter (simplified)
-export function suggestedDiameter(distance: number, frequency = 10.7): number {
-  // GHz
-  const wavelength = 299792458 / (frequency * 1e9) // meters
-  return Math.max(0.3, Math.min(3, (wavelength * distance) / 100))
+export function suggestedDiameter(distanceKm: number, frequencyGHz: number = 5.8): number {
+  
+  // 1. CONSTANTES DEL SISTEMA
+  const c = 0.3; // Velocidad luz aprox
+  const wavelength = c / frequencyGHz; // Lambda (metros)
+  const efficiency = 0.55; // Eficiencia típica 55%
+  
+  // Variables del Hardware (Estándar WiFi 5GHz)
+  const txPower = 27; // dBm (Potencia Radio)
+  const targetRx = -65; // dBm (Señal objetivo)
+  const fadeMargin = 15; // dB (Margen seguridad)
+
+  // 2. CÁLCULO DE PÉRDIDA DE ESPACIO LIBRE (FSL)
+  // FSL = 92.45 + 20log(km) + 20log(GHz)
+  const fsl = 92.45 + (20 * Math.log10(distanceKm)) + (20 * Math.log10(frequencyGHz));
+
+  // 3. CÁLCULO DE GANANCIA NECESARIA (dBi)
+  // Fórmula: (Pérdida - PotenciaRadio - Objetivo + Margen) / 2 antenas
+  // Usamos Math.abs en targetRx para evitar líos de signos, asumimos presupuesto positivo.
+  // Lógica: Necesito cubrir la pérdida (fsl) y el margen, restando lo que ya tengo (txPower).
+  // Y quiero que me sobre señal (targetRx).
+  
+  // Simplificado: G_total = FSL - TxPower - 65 (que es el target positivo) + Margen
+  const totalGainNeeded = fsl - txPower - 65 + fadeMargin;
+  let dBiPerAntenna = totalGainNeeded / 2;
+
+  // Seguridad: Ninguna antena parabólica baja de 16 dBi realmente.
+  if (dBiPerAntenna < 16) dBiPerAntenna = 16;
+
+  // 4. CONVERSIÓN dBi -> METROS (DIÁMETRO)
+  // Convertir dBi (log) a Ganancia lineal (veces)
+  const linearGain = Math.pow(10, dBiPerAntenna / 10);
+  
+  // Despeje de fórmula de apertura: D = (lambda / pi) * sqrt(G / n)
+  const diameterMeters = (wavelength / Math.PI) * Math.sqrt(linearGain / efficiency);
+
+  // Retornamos metros con 2 decimales de precisión
+  return parseFloat(diameterMeters.toFixed(2));
 }
 
 // Convert degrees to radians
