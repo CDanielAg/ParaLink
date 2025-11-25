@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowRight, Satellite, TrendingUp, Wind, Calculator, FileText, MapPin } from "lucide-react"
+import { Github, ArrowRight, Satellite, TrendingUp, Wind, Calculator, FileText, MapPin } from "lucide-react"
 import Link from "next/link"
 
 export default function Home() {
@@ -170,10 +170,21 @@ export default function Home() {
             </div>
             <div>
               <h4 className="font-semibold mb-4">Información</h4>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground mb-4">
                 Versión 1.0.0
                 <br />© 2025 ParaLink
               </p>
+              
+              {/* Botón de GitHub añadido */}
+              <a 
+                href="https://github.com/CDanielAg/ParaLink" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Github className="w-5 h-5" />
+                <span>Repositorio</span>
+              </a>
             </div>
           </div>
           <div className="border-t border-border pt-8 text-center text-sm text-muted-foreground">

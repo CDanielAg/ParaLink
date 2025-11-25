@@ -34,7 +34,7 @@ interface MapPoint {
 
 export default function Optimization() {
   const [weather, setWeather] = useState<WeatherData | null>(null)
-  const [signalQuality, setSignalQuality] = useState(75)
+  const [signalQuality, setSignalQuality] = useState(0)
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
   const [points, setPoints] = useState<MapPoint[]>([])
   const mapRef = useRef<MapContainerHandle | null>(null)
@@ -43,10 +43,16 @@ export default function Optimization() {
   const [isExporting, setIsExporting] = useState(false)
   const reportRef = useRef<HTMLDivElement>(null)
 
-  // Actualiza automáticamente el clima al seleccionar un punto
+// Actualiza automáticamente el clima al seleccionar un punto
   useEffect(() => {
     if (points.length > 0) {
       fetchWeatherData(points[0].lat, points[0].lng)
+    } else {
+      // ESTA ES LA PARTE NUEVA:
+      // Si no hay puntos (se limpió el mapa), reseteamos todo
+      setWeather(null)
+      setRecommendations([])
+      setSignalQuality(0) 
     }
   }, [points])
 

@@ -210,31 +210,6 @@ export default function Utilities() {
           </div>
         </div>
 
-        {/* Settings */}
-        <div className="bg-card rounded-lg border border-border p-6 mb-8">
-          <h2 className="text-xl font-bold mb-6">Configuración Visual</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="text-sm font-medium text-muted-foreground mb-2 block">Tema</label>
-              <select className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary">
-                <option>Oscuro (Predeterminado)</option>
-                <option>Claro</option>
-                <option>Sistema</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-muted-foreground mb-2 block">Idioma</label>
-              <select className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary">
-                <option>Español (España)</option>
-                <option>Español (América Latina)</option>
-                <option>Inglés</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
         {/* Project Info */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-card rounded-lg border border-border p-6">
