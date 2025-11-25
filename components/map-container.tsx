@@ -4,10 +4,13 @@ import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "re
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
 
+const MARKER_COLORS = ["#FF0000", "#0000FF"] // Red, Blue for point A and B
+
 interface MapPoint {
   lat: number
   lng: number
   label: string
+  color: string // Added color property
 }
 
 interface MapContainerProps {
@@ -27,13 +30,28 @@ const MapContainer = forwardRef<MapContainerHandle, MapContainerProps>(function 
   const polylineRef = useRef<L.Polyline | null>(null)
   const [points, setPoints] = useState<MapPoint[]>([])
   const [markMode, setMarkMode] = useState<boolean>(false)
-  // Use external PNG icon for the marker (provided by user)
-  const defaultMarkerIcon = L.icon({
-    iconUrl: 'https://img.icons8.com/external-others-inmotus-design/67/external-Pointer-poi-others-inmotus-design.png',
-    iconSize: [48, 48], // 50% larger
-    iconAnchor: [24, 48],
-    popupAnchor: [0, -48],
-  })
+  // Function to create a colored SVG icon for markers
+  const createColoredMarkerIcon = (color: string) => {
+    return L.divIcon({
+      className: '',
+      html: `
+        <svg width="24" height="40" viewBox="0 0 24 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 0C5.37258 0 0 5.37258 0 12C0 22.5 12 40 12 40C12 40 24 22.5 24 12C24 5.37258 18.6274 0 12 0ZM12 18C8.68629 18 6 15.3137 6 12C6 8.68629 8.68629 6 12 6C15.3137 6 18 8.68629 18 12C18 15.3137 15.3137 18 12 18Z" fill="${color}"/>
+        </svg>
+      `,
+      iconSize: [24, 40],
+      iconAnchor: [12, 40],
+      popupAnchor: [0, -35],
+    })
+  }
+
+  // defaultMarkerIcon is no longer needed as icons will be generated dynamically
+  // const defaultMarkerIcon = L.icon({
+  //   iconUrl: 'https://img.icons8.com/external-others-inmotus-design/67/external-Pointer-poi-others-inmotus-design.png',
+  //   iconSize: [48, 48], // 50% larger
+  //   iconAnchor: [24, 48],
+  //   popupAnchor: [0, -48],
+  // })
 
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return
@@ -85,14 +103,18 @@ const MapContainer = forwardRef<MapContainerHandle, MapContainerProps>(function 
       if (markersRef.current.length >= 2) return
 
       const { lat, lng } = e.latlng
+      const markerIndex = markersRef.current.length
+      if (markerIndex >= MARKER_COLORS.length) return // Prevent adding more than defined colors
+
       const newPoint: MapPoint = {
         lat: Number.parseFloat(lat.toFixed(4)),
         lng: Number.parseFloat(lng.toFixed(4)),
-        label: markersRef.current.length === 0 ? "A" : "B",
+        label: markerIndex === 0 ? "A" : "B",
+        color: MARKER_COLORS[markerIndex], // Assign color
       }
 
       // Add marker (draggable)
-      const marker = L.marker([lat, lng], { draggable: true, icon: defaultMarkerIcon })
+      const marker = L.marker([lat, lng], { draggable: true, icon: createColoredMarkerIcon(newPoint.color) }) // Use colored icon
         .bindPopup(`Punto ${newPoint.label}<br/>Lat: ${newPoint.lat}<br/>Lng: ${newPoint.lng}`)
         .addTo(map)
 
@@ -211,15 +233,17 @@ const MapContainer = forwardRef<MapContainerHandle, MapContainerProps>(function 
   const addMarkerAt = (lat: number, lng: number) => {
     const map = mapInstanceRef.current
     if (!map) return
-    if (markersRef.current.length >= 2) return
+    const markerIndex = markersRef.current.length
+    if (markerIndex >= MARKER_COLORS.length) return
 
     const newPoint: MapPoint = {
       lat: Number.parseFloat(lat.toFixed(4)),
       lng: Number.parseFloat(lng.toFixed(4)),
-      label: markersRef.current.length === 0 ? 'A' : 'B',
+      label: markerIndex === 0 ? 'A' : 'B',
+      color: MARKER_COLORS[markerIndex], // Assign color
     }
 
-  const marker = L.marker([lat, lng], { draggable: true, icon: defaultMarkerIcon })
+  const marker = L.marker([lat, lng], { draggable: true, icon: createColoredMarkerIcon(newPoint.color) }) // Use colored icon
       .bindPopup(`Punto ${newPoint.label}<br/>Lat: ${newPoint.lat}<br/>Lng: ${newPoint.lng}`)
       .addTo(map)
 

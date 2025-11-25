@@ -7,13 +7,7 @@ import dynamic from "next/dynamic"
 import TerrainProfileChart from "@/components/terrain-profile-chart"
 
 const MapContainer = dynamic(() => import("@/components/map-container"), { ssr: false })
-import type { MapContainerHandle } from "@/components/map-container"
-
-interface MapPoint {
-  lat: number
-  lng: number
-  label: string
-}
+import type { MapContainerHandle, MapPoint } from "@/components/map-container"
 
 export default function LineOfSight() {
   const mapRef = useRef<MapContainerHandle | null>(null)
@@ -168,11 +162,14 @@ export default function LineOfSight() {
             ) : (
               <div className="space-y-3">
                 {points.map((point, idx) => (
-                  <div key={idx} className="p-3 bg-muted/10 rounded-lg border border-border">
-                    <p className="text-xs font-semibold text-primary mb-1">Punto {point.label}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {point.lat.toFixed(4)}, {point.lng.toFixed(4)}
-                    </p>
+                  <div key={idx} className="p-3 bg-muted/10 rounded-lg border border-border flex items-center gap-3">
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: point.color }}></div>
+                    <div>
+                      <p className="text-xs font-semibold text-primary mb-1">Punto {point.label}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {point.lat.toFixed(4)}, {point.lng.toFixed(4)}
+                      </p>
+                    </div>
                   </div>
                 ))}
 

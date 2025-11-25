@@ -13,13 +13,7 @@ import {
 } from "@/lib/calculations"
 
 const MapContainer = dynamic(() => import("@/components/map-container"), { ssr: false })
-import type { MapContainerHandle } from "@/components/map-container"
-
-interface MapPoint {
-  lat: number
-  lng: number
-  label: string
-}
+import type { MapContainerHandle, MapPoint } from "@/components/map-container"
 
 interface CalculationResults {
   distance: number | null
@@ -203,11 +197,14 @@ export default function Calculator() {
             {points.length > 0 && (
               <div className="space-y-3">
                 {points.map((point, idx) => (
-                  <div key={idx} className="p-3 bg-muted/10 rounded-lg border border-border">
-                    <p className="text-xs font-semibold text-primary mb-1">Punto {point.label}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Lat: {point.lat} | Lng: {point.lng}
-                    </p>
+                  <div key={idx} className="p-3 bg-muted/10 rounded-lg border border-border flex items-center gap-3">
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: point.color }}></div>
+                    <div>
+                      <p className="text-xs font-semibold text-primary mb-1">Punto {point.label}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Lat: {point.lat} | Lng: {point.lng}
+                      </p>
+                    </div>
                   </div>
                 ))}
               </div>
