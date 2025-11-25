@@ -188,7 +188,7 @@ export default function Calculator() {
         </div>
 
         {/* Right Panel - Bottom on mobile, Right Side on desktop */}
-        <div className="w-full lg:w-96 bg-card/95 lg:border-l border-border backdrop-blur-sm flex-1 overflow-y-auto">
+        <div className="w-full md:w-96 bg-card/95 md:border-l border-border backdrop-blur-sm flex-1 md:flex-none overflow-y-auto">
           <div className="p-6 space-y-6">
             <div>
               <h2 className="text-2xl font-bold">Calculadora Parabólica</h2>
