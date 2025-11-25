@@ -4,21 +4,42 @@ import { Slider } from "@/components/ui/slider"
 import { useState } from "react"
 
 export default function Theory() {
-  const [aperture, setAperture] = useState(2)
-  const [focus, setFocus] = useState(1)
+  // Mantenemos tus nombres de estado, pero ahora 'aperture' controla el tamaño real (diámetro)
+  const [aperture, setAperture] = useState(3) // Tamaño del plato
+  const [focus, setFocus] = useState(1)       // Distancia focal (p)
 
-  // Generate parabola points for visualization
+  // CONSTANTES DE VISUALIZACIÓN
+  const SCALE = 40      // Pixeles por unidad (Escala uniforme para que la geometría sea real)
+  const ORIGIN_X = 200  // Vértice X
+  const ORIGIN_Y = 150  // Vértice Y
+
+  // Lógica corregida: 
+  // 1. Usamos escala 1:1 para que la distancia visual sea real.
+  // 2. 'aperture' ahora define qué tan larga es la curva (el bucle).
   const generateParabolaPoints = () => {
     const points = []
-    for (let i = -3; i <= 3; i += 0.2) {
-      const y = (i * i) / (4 * focus)
-      points.push({ x: y * 50 + 200, y: i * 30 + 150 })
+    // El límite del bucle define el diámetro de la antena
+    const limit = aperture 
+    
+    // Iteramos 'i' que representa la altura (eje Y local)
+    for (let i = -limit; i <= limit; i += 0.1) {
+      // Fórmula real: x = y² / 4p
+      const x_val = (i * i) / (4 * focus)
+      
+      points.push({ 
+        x: x_val * SCALE + ORIGIN_X, 
+        y: i * SCALE + ORIGIN_Y 
+      })
     }
     return points
   }
 
   const points = generateParabolaPoints()
   const pointsPath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ")
+
+  // Calculamos posiciones dinámicas para el SVG
+  const focusX = ORIGIN_X + (focus * SCALE)
+  const directrixX = ORIGIN_X - (focus * SCALE)
 
   return (
     <main className="pt-20 min-h-screen bg-background">
@@ -87,34 +108,34 @@ export default function Theory() {
               <div className="space-y-4">
                 <div>
                   <label className="text-sm font-medium flex justify-between mb-2">
-                    <span>Apertura (a)</span>
+                    <span>Apertura (Tamaño)</span>
                     <span className="text-primary font-bold">{aperture.toFixed(2)}</span>
                   </label>
                   <Slider
                     value={[aperture]}
                     onValueChange={(val) => setAperture(val[0])}
-                    min={0.5}
-                    max={5}
+                    min={1}
+                    max={4}
                     step={0.1}
                     className="w-full"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">Controla la distancia focal</p>
+                  <p className="text-xs text-muted-foreground mt-1">Controla el diámetro del plato</p>
                 </div>
 
                 <div>
                   <label className="text-sm font-medium flex justify-between mb-2">
-                    <span>Factor de Forma</span>
+                    <span>Distancia Focal (a)</span>
                     <span className="text-accent font-bold">{focus.toFixed(2)}</span>
                   </label>
                   <Slider
                     value={[focus]}
                     onValueChange={(val) => setFocus(val[0])}
-                    min={0.1}
+                    min={0.5}
                     max={3}
                     step={0.1}
                     className="w-full"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">Modifica la curvatura</p>
+                  <p className="text-xs text-muted-foreground mt-1">Modifica la curvatura y posición del foco</p>
                 </div>
               </div>
             </div>
@@ -133,46 +154,54 @@ export default function Theory() {
               >
                 {/* Grid */}
                 <defs>
-                  <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
-                    <path d="M 50 0 L 0 0 0 50" fill="none" stroke="rgba(100,116,139,0.1)" strokeWidth="0.5" />
+                  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(100,116,139,0.1)" strokeWidth="0.5" />
                   </pattern>
                 </defs>
                 <rect width="600" height="300" fill="url(#grid)" />
 
                 {/* Axes */}
-                <line x1="200" y1="0" x2="200" y2="300" stroke="rgba(100,116,139,0.3)" strokeWidth="1" />
-                <line x1="0" y1="150" x2="600" y2="150" stroke="rgba(100,116,139,0.3)" strokeWidth="1" />
+                <line x1={ORIGIN_X} y1="0" x2={ORIGIN_X} y2="300" stroke="rgba(100,116,139,0.3)" strokeWidth="1" />
+                <line x1="0" y1={ORIGIN_Y} x2="600" y2={ORIGIN_Y} stroke="rgba(100,116,139,0.3)" strokeWidth="1" />
 
-                {/* Directrix */}
+                {/* Directrix (Ahora es dinámica: se mueve con el foco) */}
                 <line
-                  x1="50"
+                  x1={directrixX}
                   y1="0"
-                  x2="50"
+                  x2={directrixX}
                   y2="300"
                   stroke="rgba(239,68,68,0.3)"
                   strokeWidth="2"
                   strokeDasharray="5,5"
                 />
-                <text x="40" y="15" fontSize="12" fill="rgba(239,68,68,0.6)">
+                <text x={directrixX - 10} y="20" fontSize="12" fill="rgba(239,68,68,0.6)" textAnchor="end">
                   Directriz
-                </text>
-
-                {/* Focus */}
-                <circle cx={200 + focus * 20} cy="150" r="5" fill="#10b981" />
-                <text x={200 + focus * 20} y="170" fontSize="12" fill="#10b981" textAnchor="middle">
-                  Foco
                 </text>
 
                 {/* Parabola */}
                 <path d={pointsPath} fill="none" stroke="#0ea5e9" strokeWidth="2.5" />
 
                 {/* Vertex */}
-                <circle cx="200" cy="150" r="4" fill="#e8eaed" stroke="#0ea5e9" strokeWidth="2" />
+                <circle cx={ORIGIN_X} cy={ORIGIN_Y} r="4" fill="#e8eaed" stroke="#0ea5e9" strokeWidth="2" />
+
+                {/* Focus (Ahora es dinámico) */}
+                <circle cx={focusX} cy={ORIGIN_Y} r="5" fill="#10b981" />
+                <text x={focusX} y={ORIGIN_Y + 25} fontSize="12" fill="#10b981" textAnchor="middle">
+                  Foco
+                </text>
+
+                {/* Línea visual de apertura (opcional para ver el diámetro) */}
+                <line 
+                  x1={points[0]?.x} y1={points[0]?.y} 
+                  x2={points[points.length-1]?.x} y2={points[points.length-1]?.y} 
+                  stroke="#0ea5e9" strokeWidth="1" strokeDasharray="2,2" opacity="0.3" 
+                />
+
               </svg>
 
               <div className="mt-4 p-3 bg-accent/10 border border-accent/20 rounded-lg text-sm">
                 <p>
-                  <strong>Parámetro a:</strong> {(aperture / (4 * focus)).toFixed(3)} (controla la profundidad)
+                  <strong>Relación actual:</strong> La directriz está a la misma distancia del vértice ({focus}) que el foco.
                 </p>
               </div>
             </div>

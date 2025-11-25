@@ -188,7 +188,7 @@ export default function Home() {
             </div>
           </div>
           <div className="border-t border-border pt-8 text-center text-sm text-muted-foreground">
-            <p>Desarrollado para análisis profesional de antenas parabólicas y parámetros geoespaciales</p>
+            <p>Desarrollado para análisis de antenas parabólicas</p>
           </div>
         </div>
       </footer>
